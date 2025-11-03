@@ -1,46 +1,36 @@
+import os
+import asyncio
 from aiogram import Bot, Dispatcher, types
-from aiogram.utils import executor
-from datetime import datetime
+from aiogram.filters import Command
 import pytz
 import jdatetime
+from datetime import datetime
 
-# توکن رباتت رو اینجا بذار
-TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
-
+TOKEN = os.getenv("BOT_TOKEN")
 bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher()
 
-@dp.message_handler(commands=['time'])
+@dp.message(Command("time"))
 async def send_time(message: types.Message):
-    # زمان ایران
-    tehran_tz = pytz.timezone("Asia/Tehran")
-    tehran_time = datetime.now(tehran_tz)
-    jdate = jdatetime.datetime.fromgregorian(datetime=tehran_time)
+    tz = pytz.timezone("Asia/Tehran")
+    tehran_now = datetime.now(tz)
+    utc_now = datetime.utcnow()
+    jalali_now = jdatetime.datetime.fromgregorian(datetime=tehran_now)
 
-    # زمان UTC
-    utc_time = datetime.utcnow()
+    reply = f"""Tehran Time : ( {tehran_now.strftime('%H:%M:%S')} )
 
-    # ترجمه روز و ماه فارسی
-    weekdays_fa = ["دوشنبه", "سه‌شنبه", "چهارشنبه", "پنج‌شنبه", "جمعه", "شنبه", "یک‌شنبه"]
-    months_fa = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
+Date :
+   Full : ( {jalali_now.strftime('%Y/%m/%d')} - {tehran_now.strftime('%Y-%m-%d')} )
+   Day : ( {jalali_now.strftime('%A')} - {tehran_now.strftime('%A')} )
+   Month : ( {jalali_now.strftime('%B')} - {tehran_now.strftime('%B')} )
 
-    weekday_fa = weekdays_fa[jdate.weekday()]
-    weekday_en = tehran_time.strftime("%A")
-    month_fa = months_fa[jdate.month - 1]
-    month_en = tehran_time.strftime("%B")
+UTC :
+   ( {utc_now.strftime('%A %Y-%m-%d %H:%M:%S')} )
+"""
+    await message.answer(reply)
 
-    # ساخت متن خروجی
-    text = (
-        f"Tehran Time : ( {tehran_time.strftime('%H:%M:%S')} )\n\n"
-        f"Date :\n"
-        f"   Full : ( {jdate.strftime('%Y/%m/%d')} - {tehran_time.strftime('%Y/%m/%d')} )\n"
-        f"   Day : ( {weekday_fa} - {weekday_en} )\n"
-        f"   Month : ( {month_fa} - {month_en} )\n\n"
-        f"UTC :\n"
-        f"   ( {utc_time.strftime('%A %Y-%m-%d %H:%M:%S')} )"
-    )
+async def main():
+    await dp.start_polling(bot)
 
-    await message.reply(text)
-
-if __name__ == '__main__':
-    executor.start_polling(dp)
+if __name__ == "__main__":
+    asyncio.run(main())
